@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador de Condición Física con Pacientes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .good { color: #10B981; font-weight: 600; }
+        .bad { color: #EF4444; font-weight: 600; }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .input-focus:focus {
+            border-color: #6366F1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-indigo-600 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">
+                            <i class="fas fa-heartbeat mr-2"></i> Evaluador de Condición Física
+                        </h1>
+                        <p class="text-indigo-100 mt-1">Sistema de monitoreo y evaluación de pacientes</p>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i class="fas fa-user-md text-white text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="p-6">
+                <!-- Form Section -->
+                <div class="bg-indigo-50 rounded-lg p-6 mb-8">
+                    <h2 class="text-xl font-semibold text-indigo-800 mb-4 flex items-center">
+                        <i class="fas fa-user-plus mr-2"></i> Registro de Nuevo Paciente
+                    </h2>
+                    
+                    <form id="pacienteForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                                <input type="text" id="nombre" placeholder="Ej: Juan Pérez" required
+                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none input-focus transition duration-300">
+                            </div>
+                            <div>
+                                <label for="edad" class="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                                <input type="number" id="edad" placeholder="Ej: 35" required
+                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 foc
+                                    us:outline-none input-focus transition duration-300">
+                            </div>
+                            <div>
+                                <label for="genero" class="block text-sm font-medium text-gray-700 mb-1">Género</label>
+                                <select id="genero" required
+                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none input-focus transition duration-300">
+                                    <option value="">Seleccione género</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Femenino">Femenino</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="actividad" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Actividad</label>
+                            <select id="actividad" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none input-focus transition duration-300">
+                                <option value="">Seleccione actividad</option>
+                                <option value="Caminata">Caminata</option>
+                                <option value="Trotar">Trotar</option>
+                                <option value="Correr">Correr</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="csvFile" class="block text-sm font-medium text-gray-700 mb-1">Archivo de datos del sensor</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="file" id="csvFile" accept=".csv,.txt" required
+                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none input-focus transition duration-300">
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Sube un archivo CSV o TXT con los datos del acelerómetro</p>
+                        </div>
+                        
+                        <div class="pt-2">
+                            <button type="submit" 
+                                class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-chart-line mr-2"></i> Evaluar y Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultado" class="mb-8"></div>
+                
+                <!-- Chart Section -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-bar mr-2 text-indigo-600"></i> Gráfico de Aceleración
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="grafica"></canvas>
+                    </div>
+                </div>
+
+                <!-- Patients Table -->
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-users mr-2 text-indigo-600"></i> Pacientes Registrados
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table id="tablaPacientes" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+    <tr>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edad</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Género</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actividad</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Picos Detectados</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evaluación</th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+    </tr>
+</thead>
+                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-gray-500">© 2023 Evaluador de Condición Física. Todos los derechos reservados.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-indigo-600">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-indigo-600">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-indigo-600">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDy0lwUev91-86ez-mj5PEWbvyc-rnJS0k",
+            authDomain: "consultasensores.firebaseapp.com",
+            projectId: "consultasensores",
+            storageBucket: "consultasensores.appspot.com",
+            messagingSenderId: "636159174631",
+            appId: "1:636159174631:web:9f31d8fc5418b4634ebf42",
+            measurementId: "G-X7TRGJES8Q"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let grafica = null;
+
+        document.getElementById("pacienteForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            procesarCSV();
+        });
+
+        function procesarCSV() {
+            const archivo = document.getElementById('csvFile').files[0];
+            if (!archivo) {
+                mostrarAlerta("Por favor, sube un archivo CSV o TXT.", "error");
+                return;
+            }
+
+            // Mostrar loader
+            const submitBtn = document.querySelector("#pacienteForm button[type='submit']");
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...`;
+            submitBtn.disabled = true;
+
+            const lector = new FileReader();
+            lector.onload = function(e) {
+                const contenido = e.target.result;
+                analizarCSV(contenido);
+                
+                // Restaurar botón
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+            };
+            lector.onerror = function() {
+                mostrarAlerta("Error al leer el archivo. Inténtalo de nuevo.", "error");
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+            };
+            lector.readAsText(archivo);
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `p-4 mb-4 rounded-lg ${tipo === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+            alertDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${tipo === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>
+                    <span>${mensaje}</span>
+                </div>
+            `;
+            
+            const resultadoDiv = document.getElementById("resultado");
+            resultadoDiv.innerHTML = '';
+            resultadoDiv.appendChild(alertDiv);
+        }
+
+       function analizarCSV(data) {
+    const actividad = document.getElementById("actividad").value;
+
+    // Determinar el umbral según la actividad
+    let umbral;
+    switch (actividad) {
+        case "Caminata":
+            umbral = 0.5;
+            break;
+        case "Trotar":
+            umbral = 2.0;
+            break;
+        case "Correr":
+            umbral = 3.0;
+            break;
+        default:
+            mostrarAlerta("Por favor, selecciona una actividad válida.", "error");
+            return;
+    }
+
+    const lineas = data.trim().split("\n");
+    const delimitador = lineas[0].includes("\t") ? "\t" : ",";
+    const encabezado = lineas[0].split(delimitador).map(h => h.trim().toLowerCase());
+
+    const idxTiempo = encabezado.indexOf("tiempo(ms)");
+    const idxX = encabezado.indexOf("acc x");
+    const idxY = encabezado.indexOf("acc y");
+    const idxZ = encabezado.indexOf("acc z");
+
+    if (idxTiempo === -1 || idxX === -1 || idxY === -1 || idxZ === -1) {
+        mostrarAlerta("El archivo debe tener columnas: Tiempo(ms), Acc X, Acc Y, Acc Z", "error");
+        return;
+    }
+
+    let tiempos = [];
+    let magnitudes = [];
+    let picos = 0;
+
+    for (let i = 1; i < lineas.length; i++) {
+        const campos = lineas[i].split(delimitador);
+        const tiempo = parseFloat(campos[idxTiempo]);
+        const ax = parseFloat(campos[idxX]);
+        const ay = parseFloat(campos[idxY]);
+        const az = parseFloat(campos[idxZ]);
+
+        if (isNaN(ax) || isNaN(ay) || isNaN(az) || isNaN(tiempo)) continue;
+
+        const magnitud = Math.sqrt(ax * ax + ay * ay + az * az);
+        tiempos.push(tiempo);
+        magnitudes.push(magnitud);
+
+        if (magnitud > umbral) {
+            picos++;
+        }
+    }
+
+    let evaluacionTexto = "";
+    let evaluacionClass = "";
+    if (picos >= 5) {
+        evaluacionTexto = "Buena condición física";
+        evaluacionClass = "good";
+    } else {
+        evaluacionTexto = "Condición física baja";
+        evaluacionClass = "bad";
+    }
+
+    document.getElementById("resultado").innerHTML = `
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Resultados de la Evaluación</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-blue-600 font-medium">Paciente</p>
+                    <p class="text-lg font-semibold">${document.getElementById("nombre").value}</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-purple-600 font-medium">Picos detectados</p>
+                    <p class="text-lg font-semibold">${picos}</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-green-600 font-medium">Evaluación</p>
+                    <p class="text-lg font-semibold ${evaluacionClass}">${evaluacionTexto}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    agregarPaciente(picos, evaluacionTexto);
+    dibujarGrafica(tiempos, magnitudes, umbral);
+}
+function agregarPaciente(picos, evaluacion) {
+    const nombre = document.getElementById("nombre").value;
+    const edad = document.getElementById("edad").value;
+    const genero = document.getElementById("genero").value;
+    const actividad = document.getElementById("actividad").value;
+
+    // Guardar en Firestore
+    db.collection("pacientes").add({
+        nombre: nombre,
+        edad: parseInt(edad),
+        genero: genero,
+        actividad: actividad, // Agregar actividad
+        picosDetectados: picos,
+        evaluacion: evaluacion,
+        fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+        console.log("Paciente guardado en Firestore");
+        mostrarAlerta("Paciente registrado exitosamente!", "success");
+    })
+    .catch((error) => {
+        console.error("Error guardando en Firestore: ", error);
+        mostrarAlerta("Error al guardar el paciente. Inténtalo de nuevo.", "error");
+    });
+}
+
+        function dibujarGrafica(tiempos, magnitudes, umbral) {
+            const colores = magnitudes.map(val => val > umbral ? '#EF4444' : '#6366F1');
+
+            if (grafica) {
+                grafica.destroy();
+            }
+
+            const ctx = document.getElementById('grafica').getContext('2d');
+            grafica = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: tiempos,
+                    datasets: [{
+                        label: 'Aceleración (g)',
+                        data: magnitudes,
+                        borderColor: '#6366F1',
+                        backgroundColor: colores,
+                        pointBackgroundColor: colores,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Umbral',
+                        data: Array(tiempos.length).fill(umbral),
+                        borderColor: '#F59E0B',
+                        borderDash: [5,5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tiempo (ms)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Magnitud (g)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 0,
+                            max: Math.max(...magnitudes) + 1
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
+                    }
+                }
+            });
+        }
+
+         // Función para eliminar un paciente
+function eliminarPaciente(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar este paciente?")) {
+        db.collection("pacientes").doc(id).delete()
+            .then(() => {
+                mostrarAlerta("Paciente eliminado exitosamente.", "success");
+            })
+            .catch((error) => {
+                console.error("Error al eliminar el paciente: ", error);
+                mostrarAlerta("Error al eliminar el paciente. Inténtalo de nuevo.", "error");
+            });
+    }
+}
+
+// Función para editar un paciente
+function editarPaciente(id) {
+    db.collection("pacientes").doc(id).get()
+        .then((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById("nombre").value = data.nombre;
+                document.getElementById("edad").value = data.edad;
+                document.getElementById("genero").value = data.genero;
+                document.getElementById("actividad").value = data.actividad;
+
+                // Cambiar el botón para guardar cambios
+                const submitBtn = document.querySelector("#pacienteForm button[type='submit']");
+                submitBtn.innerHTML = "Guardar Cambios";
+                submitBtn.onclick = function (e) {
+                    e.preventDefault();
+                    guardarCambiosPaciente(id);
+                };
+            } else {
+                mostrarAlerta("Paciente no encontrado.", "error");
+            }
+        })
+        .catch((error) => {
+            console.error("Error al obtener el paciente: ", error);
+            mostrarAlerta("Error al obtener el paciente. Inténtalo de nuevo.", "error");
+        });
+}
+
+// Función para guardar los cambios de un paciente
+function guardarCambiosPaciente(id) {
+    const nombre = document.getElementById("nombre").value;
+    const edad = document.getElementById("edad").value;
+    const genero = document.getElementById("genero").value;
+    const actividad = document.getElementById("actividad").value;
+
+    db.collection("pacientes").doc(id).update({
+        nombre: nombre,
+        edad: parseInt(edad),
+        genero: genero,
+        actividad: actividad
+    })
+    .then(() => {
+        mostrarAlerta("Paciente actualizado exitosamente.", "success");
+
+        // Restaurar el botón
+        const submitBtn = document.querySelector("#pacienteForm button[type='submit']");
+        submitBtn.innerHTML = `<i class="fas fa-chart-line mr-2"></i> Evaluar y Guardar`;
+        submitBtn.onclick = function (e) {
+            e.preventDefault();
+            procesarCSV();
+        };
+
+        // Limpiar el formulario
+        document.getElementById("pacienteForm").reset();
+    })
+    .catch((error) => {
+        console.error("Error al actualizar el paciente: ", error);
+        mostrarAlerta("Error al actualizar el paciente. Inténtalo de nuevo.", "error");
+    });
+}
+        // Mostrar registros en tiempo real
+        db.collection("pacientes").orderBy("fechaRegistro", "desc").onSnapshot(snapshot => {
+            const tbody = document.getElementById("tablaPacientes").querySelector("tbody");
+            tbody.innerHTML = "";
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const evaluacionClass = data.evaluacion.includes("Buena") ? "good" : "bad";
+                
+          const fila = `
+<tr class="hover:bg-gray-50">
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${data.nombre}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.edad}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.genero}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.actividad}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.picosDetectados}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm ${evaluacionClass}">${data.evaluacion}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        <button onclick="editarPaciente('${doc.id}')" class="text-indigo-600 hover:text-indigo-900 mr-2">
+            <i class="fas fa-edit"></i> Editar
+        </button>
+        <button onclick="eliminarPaciente('${doc.id}')" class="text-red-600 hover:text-red-900">
+            <i class="fas fa-trash"></i> Eliminar
+        </button>
+    </td>
+</tr>
+`;
+                tbody.innerHTML += fila;
+            });
+            
+            // Mostrar mensaje si no hay pacientes
+            if (tbody.innerHTML === "") {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No hay pacientes registrados aún
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
