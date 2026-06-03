@@ -211,11 +211,7 @@ Clasificación Física
 
 ---
 
-## 👨‍💻 Autor
 
-Álvaro Acosta Agón
-
-Ingeniería en Computación
 
 Universidad Autónoma de Guerrero
 
